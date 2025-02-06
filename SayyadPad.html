@@ -1,0 +1,613 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sayyad Pad</title>
+  <style>
+    :root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --accent: #6c5ce7;
+  --border-radius: 12px;
+  --shadow: 0 12px 32px rgba(0,0,0,0.1);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #2d3436;
+  --bg-secondary: #242a2c;
+  --text-primary: #f8f9fa;
+  --text-secondary: #adb5bd;
+  --accent: #a592f2;
+}
+
+[data-theme="sepia"] {
+  --bg-primary: #f3e9d2;
+  --bg-secondary: #e8dbbe;
+  --text-primary: #3d3527;
+  --text-secondary: #6b5e4a;
+  --accent: #b88f4a;
+}
+
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: var(--bg-secondary);
+  font-family: 'Inter', sans-serif;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+  background: var(--bg-primary);
+}
+
+.sidebar {
+  width: 64px;
+  background: var(--bg-primary);
+  border-right: 1px solid rgba(0,0,0,0.1);
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.tool-button {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  position: relative;
+}
+
+.tool-button.active {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+.tool-button.active svg {
+  transform: rotate(45deg);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tool-button span {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.content-area {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notebook-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(to bottom, 
+    rgba(0,0,0,0.1) 1px, transparent 1px);
+  background-size: 100% 32px;
+  pointer-events: none;
+}
+
+#textEditor {
+  width: 100%;
+  min-height: 100%;
+  padding: 32px;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  resize: none;
+}
+
+#drawCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background-color: var(--bg-primary);
+  transition: background-color 0.2s ease;
+}
+
+.export-menu, .settings-menu {
+  position: fixed;
+  background: var(--bg-primary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  min-width: 200px;
+  z-index: 1000;
+}
+
+.settings-menu {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 16px;
+  gap: 12px;
+}
+
+.scrollable {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.setting-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 56px;
+  }
+  
+  .tool-button {
+    width: 40px;
+    height: 40px;
+  }
+  
+  #textEditor {
+    padding: 24px;
+    font-size: 14px;
+  }
+}
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Victor+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/websim-styles.css">
+</head>
+<body data-theme="light">
+  <div class="container">
+    <nav class="sidebar">
+      <div class="toolbar-group">
+        <button class="tool-button" onclick="setMode('text')" id="textBtn">
+          <svg class="icon"><path d="M4 20v-6h16v6H4zm0-8l7-7 7 7H4z"/></svg>
+          <span>Text</span>
+        </button>
+        <button class="tool-button" onclick="setMode('draw')" id="drawBtn">
+          <svg class="icon"><path d="M6 21q-.825 0-1.412-.587Q4 19.825 4 19V5q0-.825.588-1.413Q5.175 3 6 3h12q.825 0 1.413.587Q20 4.175 20 5v14q0 .825-.587 1.413Q18.825 21 18 21Zm0-2h12V5H6v14Zm3-1h6q.425 0 .713-.288Q16 17.425 16 17t-.287-.712Q15.425 16 15 16H9q-.425 0-.712.288Q8 16.575 8 17t.288.712Q8.575 18 9 18Zm-3 1V5v14Z"/></svg>
+          <span>Draw</span>
+        </button>
+        <button class="tool-button" onclick="toggleEraser()" id="eraserBtn">
+          <svg class="icon"><path d="M16.9 21 10 13.95 12.95 11l6.9 6.95-2.95 2.95Zm-6.95-6.95-4.25-4.2L12.95 3H20v7.05L17.05 13l-7 7.05Z"/></svg>
+          <span>Eraser</span>
+        </button>
+      </div>
+
+      <div class="toolbar-group scrollable">
+        <button class="tool-button" onclick="showExportMenu()">
+          <svg class="icon"><path d="M14 17v-4h-4v4H5l7-7 7 7h-5ZM5 20q-.825 0-1.413-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20Z"/></svg>
+          <span>Export</span>
+        </button>
+        <button class="tool-button" onclick="showSettings()">
+          <svg class="icon"><path d="m9.25 22-.4-3.2q-.325-.125-.612-.3-.288-.175-.563-.375L4.7 19.375l-2.75-4.75 2.575-1.95Q4.5 12.5 4.5 12.337v-.674q0-.163.025-.338L1.95 9.375l2.75-4.75 2.975 1.25q.275-.2.575-.375.3-.175.6-.3l.4-3.2h5.5l.4 3.2q.325.125.613.3.287.175.562.375l2.975-1.25 2.75 4.75-2.575 1.95q.025.175.025.338v.674q0 .163-.05.338l2.575 1.95-2.75 4.75-2.95-1.25q-.275.2-.562.375-.288.175-.613.3l-.4 3.2Zm2.8-6.5q1.45 0 2.475-1.025Q15.55 12.95 15.55 11.5q0-1.45-1.025-2.475Q13.5 8 12.05 8q-1.45 0-2.475 1.025Q8.55 10.05 8.55 11.5q0 1.45 1.025 2.475Q10.6 15 12.05 15Z"/></svg>
+          <span>Settings</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="content-area">
+      <div class="notebook-lines"></div>
+      <textarea id="textEditor" placeholder="Start writing..."></textarea>
+      <canvas id="drawCanvas"></canvas>
+    </div>
+
+    <div class="export-menu">
+      <button class="menu-item" onclick="exportContent('txt')">Text (.txt)</button>
+      <button class="menu-item" onclick="exportContent('pdf')">PDF</button>
+      <button class="menu-item" onclick="exportContent('png')">Image</button>
+      <button class="menu-item" onclick="exportContent('svg')">Vector</button>
+      <button class="menu-item" onclick="hideExportMenu()">Close</button>
+    </div>
+
+    <div class="settings-menu scrollable">
+      <div class="setting-group">
+        <label>Theme</label>
+        <select id="themeSelect" onchange="toggleTheme(this.value)">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="sepia">Sepia</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>Line Spacing:</label>
+        <input type="range" id="lineSpacing" min="20" max="50" value="30" oninput="updateLineCount(this.value)">
+        <span id="lineCountValue" style="color: var(--text-primary)">30px</span>
+      </div>
+
+      <div class="setting-group">
+        <label>Line Color:</label>
+        <input type="color" value="#000000" oninput="updateLineColor(this.value)">
+      </div>
+
+      <div class="setting-group">
+        <label>Editor Font:</label>
+        <select id="fontSelect" onchange="updateFont(this.value)">
+          <option value="Inter">Sans Serif</option>
+          <option value="Victor Mono">Monospace</option>
+        </select>
+        <div class="font-preview" id="fontPreview">
+          The quick brown fox jumps over the lazy dog
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label>Line Height:</label>
+        <input type="range" id="lineHeight" min="1.4" max="2.4" step="0.2" oninput="updateLineHeight(this.value)">
+        <span id="lineHeightValue" style="color: var(--text-primary)">1.8</span>
+      </div>
+
+      <div class="setting-group">
+        <label>Page Margins:</label>
+        <input type="range" id="pageMargins" min="10" max="50" oninput="updateMargins(this.value)">
+        <span id="marginValue" style="color: var(--text-primary)">20px</span>
+      </div>
+
+      <div class="setting-group">
+        <label>Text Color:</label>
+        <input type="color" id="textColor" value="#333333" onchange="updateTextColor(this.value)">
+      </div>
+
+      <div class="setting-group">
+        <label>Drawing Color:</label>
+        <input type="color" id="drawColor" value="#000000" onchange="updateDrawingColor(this.value)">
+      </div>
+
+      <div class="setting-group">
+        <label>Brush Size:</label>
+        <input type="range" id="brushSize" min="1" max="50" value="3" oninput="updateBrushSize(this.value)">
+        <span id="brushSizeValue">3</span>
+      </div>
+
+      <button onclick="hideSettings()">Close Preferences</button>
+    </div>
+
+    <script src="static/draw-handler.js"></script>
+    <script>
+      let drawingManager, currentMode = 'text';
+      const settings = { theme: 'light', font: 'Inter', lineHeight: 1.6 };
+
+      function toggleTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        settings.theme = theme;
+        localStorage.setItem('smartpad-settings', JSON.stringify(settings));
+        document.getElementById('themeSelect').value = theme;
+      }
+
+      function initTheme() {
+        const saved = localStorage.getItem('smartpad-settings');
+        if(saved) {
+          const savedSettings = JSON.parse(saved);
+          toggleTheme(savedSettings.theme || 'light');
+        }
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.tool-button').forEach(btn => 
+          btn.classList.toggle('active', btn.id === mode+'Btn'));
+        document.getElementById('textEditor').style.display = 
+          mode === 'text' ? 'block' : 'none';
+        document.getElementById('drawCanvas').style.display = 
+          mode === 'draw' ? 'block' : 'none';
+        drawingManager?.resizeCanvas();
+      }
+
+      function updateLineCount(value) {
+        document.documentElement.style.setProperty('--line-spacing', value + 'px');
+        document.getElementById('lineCountValue').textContent = value + 'px';
+      }
+
+      function updateLineColor(color) {
+        document.documentElement.style.setProperty('--line-color', color + '20');
+      }
+
+      function updateFont(font) {
+        document.getElementById('textEditor').style.fontFamily = font;
+        document.getElementById('fontPreview').style.fontFamily = font;
+      }
+
+      function updateLineHeight(value) {
+        document.getElementById('textEditor').style.lineHeight = value;
+        document.getElementById('lineHeightValue').textContent = value;
+      }
+
+      function updateMargins(value) {
+        document.getElementById('textEditor').style.padding = value + 'px';
+        document.getElementById('marginValue').textContent = value + 'px';
+      }
+
+      function updateTextColor(color) {
+        document.getElementById('textEditor').style.color = color;
+      }
+
+      function updateDrawingColor(color) {
+        drawingManager.updateBrushSettings(color, parseInt(document.getElementById('brushSize').value));
+        document.getElementById('drawColor').value = color;
+      }
+
+      function updateBrushSize(value) {
+        drawingManager.updateBrushSettings(document.getElementById('drawColor').value, parseInt(value));
+        document.getElementById('brushSizeValue').textContent = value;
+      }
+
+      function toggleEraser() {
+        if(drawingManager) drawingManager.toggleEraser();
+      }
+
+      function showExportMenu() {
+        document.querySelector('.export-menu').style.display = 'flex';
+      }
+
+      function hideExportMenu() {
+        document.querySelector('.export-menu').style.display = 'none';
+      }
+
+      function exportContent(format) {
+        hideExportMenu();
+        const content = document.getElementById('textEditor').value;
+        switch (format) {
+          case 'txt':
+            const blob = new Blob([content], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'note.txt';
+            link.click();
+            break;
+          case 'pdf': {
+            const pdf = new jspdf.jsPDF();
+            pdf.text(content, 10, 10);
+            pdf.save('note.pdf');
+            break;
+          }
+          case 'png': {
+            if (currentMode === 'draw') {
+              const link = document.createElement('a');
+              link.download = 'drawing.png';
+              link.href = document.getElementById('drawCanvas').toDataURL();
+              link.click();
+            }
+            break;
+          }
+          case 'svg': {
+            const canvas = document.getElementById('drawCanvas');
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">` +
+              (drawingManager?.getStrokes()?.map(stroke =>
+                `<path d="M${stroke.points.map(p => `${p.x} ${p.y}`).join(' L')}" stroke="black" fill="none" stroke-width="2"/>`
+              ).join('') || '') +
+              '</svg>';
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'drawing.svg';
+            link.click();
+            break;
+          }
+        }
+      }
+
+      function showSettings() {
+        document.querySelector('.settings-menu').style.display = 'flex';
+      }
+
+      function hideSettings() {
+        document.querySelector('.settings-menu').style.display = 'none';
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        initTheme(); 
+        drawingManager = new DrawingManager(document.getElementById('drawCanvas'));
+        document.getElementById('drawCanvas').style.touchAction = 'none';
+
+        const savedDrawSettings = localStorage.getItem('drawSettings');
+        if(savedDrawSettings) {
+          const {color, width} = JSON.parse(savedDrawSettings);
+          document.getElementById('drawColor').value = color;
+          document.getElementById('brushSize').value = width;
+          document.getElementById('brushSizeValue').textContent = width;
+        }
+        
+        if(drawingManager.settings.isEraser) {
+          document.getElementById('eraserBtn').classList.add('active');
+        }
+      });
+
+      window.addEventListener('resize', () => drawingManager?.resizeCanvas());
+
+      document.getElementById('textEditor').addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+      });
+
+      document.getElementById('drawCanvas').addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+    <script>
+      class DrawingManager {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', { willReadFrequently: true });
+    this.undoStack = [];
+    this.currentPath = null;
+    this.settings = {
+      color: '#000000',
+      width: 3,
+      isEraser: false
+    };
+    this.init();
+  }
+
+  init() {
+    this.resizeCanvas();
+    this.setupInputHandling();
+    window.addEventListener('resize', () => this.resizeCanvas());
+    
+    const savedSettings = localStorage.getItem('drawSettings');
+    if(savedSettings) {
+      Object.assign(this.settings, JSON.parse(savedSettings));
+    }
+    this.updateEraserButton();
+  }
+
+  updateEraserButton() {
+    const eraserBtn = document.getElementById('eraserBtn');
+    if(eraserBtn) {
+      eraserBtn.classList.toggle('active', this.settings.isEraser);
+      eraserBtn.querySelector('svg').style.transform = this.settings.isEraser ? 'rotate(45deg)' : 'none';
+    }
+  }
+
+  toggleEraser() {
+    this.settings.isEraser = !this.settings.isEraser;
+    this.updateEraserButton();
+    localStorage.setItem('drawSettings', JSON.stringify(this.settings));
+    this.redraw();
+  }
+
+  setupInputHandling() {
+    const getCanvasColor = () => getComputedStyle(this.canvas).backgroundColor;
+
+    const handleStart = (x, y) => {
+      this.currentPath = {
+        points: [{x, y}],
+        color: this.settings.isEraser ? getCanvasColor() : this.settings.color,
+        width: this.settings.width,
+        compositeOp: this.settings.isEraser ? 'destination-out' : 'source-over'
+      };
+      this.undoStack.push(this.currentPath);
+    };
+
+    const handleMove = (x, y) => {
+      if (!this.currentPath) return;
+      this.currentPath.points.push({x, y});
+      this.redraw();
+    };
+
+    const handleEnd = () => {
+      this.currentPath = null;
+    };
+
+    const handleEvent = (e) => {
+      if (e.pointerType === 'touch' && e.pointerType !== 'mouse') {
+        e.preventDefault();
+      }
+    };
+
+    this.canvas.addEventListener('pointerdown', e => {
+      handleEvent(e);
+      const rect = this.canvas.getBoundingClientRect();
+      handleStart(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    this.canvas.addEventListener('pointermove', e => {
+      handleEvent(e);
+      const rect = this.canvas.getBoundingClientRect();
+      handleMove(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    ['pointerup', 'pointercancel'].forEach(event => {
+      this.canvas.addEventListener(event, e => {
+        handleEvent(e);
+        handleEnd();
+      });
+    });
+
+    this.canvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      this.toggleEraser();
+    });
+  }
+
+  redraw() {
+    this.ctx.save();
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = getComputedStyle(this.canvas).backgroundColor;
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    this.undoStack.forEach(path => {
+      this.ctx.beginPath();
+      this.ctx.globalCompositeOperation = path.compositeOp;
+      this.ctx.strokeStyle = path.color;
+      this.ctx.lineWidth = path.width;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      
+      path.points.forEach((p, i) => {
+        if(i === 0) this.ctx.moveTo(p.x, p.y);
+        else this.ctx.lineTo(p.x, p.y);
+      });
+      this.ctx.stroke();
+    });
+    this.ctx.restore();
+  }
+
+  updateBrushSettings(color, width) {
+    this.settings.color = color;
+    this.settings.width = width;
+    localStorage.setItem('drawSettings', JSON.stringify(this.settings));
+  }
+
+  resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = this.canvas.getBoundingClientRect();
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.ctx.scale(dpr, dpr);
+    this.redraw();
+  }
+
+  getStrokes() {
+    return this.undoStack;
+  }
+}
+
+window.DrawingManager = DrawingManager;
+    </script>
+  </body>
+</html>
