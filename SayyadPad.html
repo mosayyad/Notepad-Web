@@ -1,8 +1,15 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Sayyad Pad</title>
+  <title>ZenPad Pro – Crafted by Mohammed Sayyad (SayyadN)</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Victor+Mono&family=Roboto:wght@400;500;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Local Styles -->
+  <link rel="stylesheet" href="static/websim-styles.css">
+  <!-- jsPDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
   --bg-primary: #ffffff;
@@ -10,9 +17,10 @@
   --text-primary: #2d3436;
   --text-secondary: #636e72;
   --accent: #6c5ce7;
+  --accent-gradient: linear-gradient(135deg, #6c5ce7, #8e44ad);
   --border-radius: 12px;
-  --shadow: 0 12px 32px rgba(0,0,0,0.1);
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
@@ -21,6 +29,7 @@
   --text-primary: #f8f9fa;
   --text-secondary: #adb5bd;
   --accent: #a592f2;
+  --accent-gradient: linear-gradient(135deg, #a592f2, #6c5ce7);
 }
 
 [data-theme="sepia"] {
@@ -29,6 +38,7 @@
   --text-primary: #3d3527;
   --text-secondary: #6b5e4a;
   --accent: #b88f4a;
+  --accent-gradient: linear-gradient(135deg, #b88f4a, #f39c12);
 }
 
 * {
@@ -41,23 +51,26 @@ body {
   height: 100vh;
   background: var(--bg-secondary);
   font-family: 'Inter', sans-serif;
+  overflow: hidden;
 }
 
 .container {
   display: flex;
   height: 100vh;
   background: var(--bg-primary);
+  overflow: hidden;
 }
 
 .sidebar {
   width: 64px;
-  background: var(--bg-primary);
-  border-right: 1px solid rgba(0,0,0,0.1);
+  background: var(--accent-gradient);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
   padding: 16px 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
   transition: var(--transition);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
 .toolbar-group {
@@ -71,7 +84,7 @@ body {
   width: 48px;
   height: 48px;
   border: none;
-  background: transparent;
+  background: var(--bg-primary);
   border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
@@ -81,11 +94,17 @@ body {
   color: var(--text-secondary);
   transition: var(--transition);
   position: relative;
+  cursor: pointer;
+}
+
+.tool-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .tool-button.active {
-  background: var(--accent) !important;
-  color: white !important;
+  background: var(--accent);
+  color: #fff;
 }
 
 .tool-button.active svg {
@@ -109,43 +128,79 @@ body {
   position: relative;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  min-width: 100%;
+  min-height: 100%;
 }
 
-.notebook-lines {
-  position: absolute;
-  width: 100%;
+.note-editor-container {
+  position: relative;
   height: 100%;
-  background-image: linear-gradient(to bottom, 
-    rgba(0,0,0,0.1) 1px, transparent 1px);
-  background-size: 100% 32px;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.tabs-container {
+  display: flex;
+  overflow-x: auto;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.tab:hover {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.tab.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.tab .close-tab {
+  margin-left: 8px;
+  font-weight: bold;
 }
 
 #textEditor {
+  flex: 1;
   width: 100%;
   min-height: 100%;
-  padding: 32px;
+  padding: 16px;
   border: none;
-  background: transparent;
+  background: var(--bg-primary);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(1.8em - 1px),
+    rgba(0, 0, 0, 0.1) calc(1.8em - 1px),
+    rgba(0, 0, 0, 0.1) 1.8em
+  );
   font-family: 'Inter', sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.8;
   color: var(--text-primary);
   resize: none;
+  overflow-y: auto;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
 }
 
-#drawCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  background-color: var(--bg-primary);
-  transition: background-color 0.2s ease;
-}
-
-.export-menu, .settings-menu {
+.export-menu,
+.settings-menu {
   position: fixed;
   background: var(--bg-primary);
   border-radius: var(--border-radius);
@@ -155,13 +210,31 @@ body {
   flex-direction: column;
   min-width: 200px;
   z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.export-menu .menu-item {
+  padding: 8px 12px;
+  border: none;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin: 4px 0;
+  transition: var(--transition);
+}
+
+.export-menu .menu-item:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 .settings-menu {
-  max-height: 70vh;
+  max-height: 60vh;
   overflow-y: auto;
   padding: 16px;
   gap: 12px;
+  right: 16px;
+  bottom: 72px;
 }
 
 .scrollable {
@@ -184,59 +257,192 @@ body {
   color: var(--text-primary);
 }
 
+.attribution {
+  position: fixed;
+  bottom: 12px;
+  right: 16px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 4px 8px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  transition: var(--transition);
+}
+
+.attribution:hover {
+  transform: scale(1.05);
+}
+
+.attribution span {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#drawCanvas {
+  display: block;
+  min-width: 100%;
+  min-height: 100%;
+  touch-action: none;
+  background-color: var(--bg-primary);
+  transition: background-color 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 56px;
   }
-  
+
   .tool-button {
     width: 40px;
     height: 40px;
   }
-  
+
   #textEditor {
     padding: 24px;
     font-size: 14px;
   }
 }
+
+#textEditorToolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+#textEditorToolbar button {
+  background: var(--bg-primary);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#textEditorToolbar button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.font-preview {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  margin-top: 8px;
+  border-radius: var(--border-radius);
+  background: var(--bg-secondary);
+}
+
+#coordDisplay {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+#backToTopBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  z-index: 1000;
+}
+
+#backToTopBtn:hover {
+  transform: scale(1.1);
+}
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Victor+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/websim-styles.css">
 </head>
 <body data-theme="light">
   <div class="container">
-    <nav class="sidebar">
+    <nav class="sidebar" aria-label="Toolbar">
       <div class="toolbar-group">
-        <button class="tool-button" onclick="setMode('text')" id="textBtn">
-          <svg class="icon"><path d="M4 20v-6h16v6H4zm0-8l7-7 7 7H4z"/></svg>
+        <button class="tool-button" onclick="setMode('text')" id="textBtn" aria-label="Text Mode">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 20v-6h16v6H4zm0-8l7-7 7 7H4z"/></svg>
           <span>Text</span>
         </button>
-        <button class="tool-button" onclick="setMode('draw')" id="drawBtn">
-          <svg class="icon"><path d="M6 21q-.825 0-1.412-.587Q4 19.825 4 19V5q0-.825.588-1.413Q5.175 3 6 3h12q.825 0 1.413.587Q20 4.175 20 5v14q0 .825-.587 1.413Q18.825 21 18 21Zm0-2h12V5H6v14Zm3-1h6q.425 0 .713-.288Q16 17.425 16 17t-.287-.712Q15.425 16 15 16H9q-.425 0-.712.288Q8 16.575 8 17t.288.712Q8.575 18 9 18Zm-3 1V5v14Z"/></svg>
+        <button class="tool-button" onclick="setMode('draw')" id="drawBtn" aria-label="Draw Mode">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 21q-.825 0-1.412-.587Q4 19.825 4 19V5q0-.825.588-1.413Q5.175 3 6 3h12q.825 0 1.413.587Q20 4.175 20 5v14q0 .825-.587 1.413Q18.825 21 18 21Zm0-2h12V5H6v14Zm3-1h6q.425 0 .713-.288Q16 17.425 16 17t-.287-.712Q15.425 16 15 16H9q-.425 0-.712.288Q8 16.575 8 17t.288.712Q8.575 18 9 18Zm-3 1V5v14Z"/></svg>
           <span>Draw</span>
         </button>
-        <button class="tool-button" onclick="toggleEraser()" id="eraserBtn">
-          <svg class="icon"><path d="M16.9 21 10 13.95 12.95 11l6.9 6.95-2.95 2.95Zm-6.95-6.95-4.25-4.2L12.95 3H20v7.05L17.05 13l-7 7.05Z"/></svg>
+        <button class="tool-button" onclick="toggleEraser()" id="eraserBtn" aria-label="Eraser">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M16.9 21 10 13.95 12.95 11l6.9 6.95-2.95 2.95Zm-6.95-6.95-4.25-4.2L12.95 3H20v7.05L17.05 13l-7 7.05Z"/></svg>
           <span>Eraser</span>
+        </button>
+        <button class="tool-button" onclick="clearDrawing()" id="clearDrawBtn" aria-label="Clear Drawing">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M3 6h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M10 11v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M14 11v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span>Clear</span>
         </button>
       </div>
 
       <div class="toolbar-group scrollable">
-        <button class="tool-button" onclick="showExportMenu()">
-          <svg class="icon"><path d="M14 17v-4h-4v4H5l7-7 7 7h-5ZM5 20q-.825 0-1.413-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20Z"/></svg>
+        <button class="tool-button" onclick="showExportMenu()" aria-label="Export">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 17v-4h-4v4H5l7-7 7 7h-5ZM5 20q-.825 0-1.413-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20Z"/></svg>
           <span>Export</span>
         </button>
-        <button class="tool-button" onclick="showSettings()">
-          <svg class="icon"><path d="m9.25 22-.4-3.2q-.325-.125-.612-.3-.288-.175-.563-.375L4.7 19.375l-2.75-4.75 2.575-1.95Q4.5 12.5 4.5 12.337v-.674q0-.163.025-.338L1.95 9.375l2.75-4.75 2.975 1.25q.275-.2.575-.375.3-.175.6-.3l.4-3.2h5.5l.4 3.2q.325.125.613.3.287.175.562.375l2.975-1.25 2.75 4.75-2.575 1.95q.025.175.025.338v.674q0 .163-.05.338l2.575 1.95-2.75 4.75-2.95-1.25q-.275.2-.562.375-.288.175-.613.3l-.4 3.2Zm2.8-6.5q1.45 0 2.475-1.025Q15.55 12.95 15.55 11.5q0-1.45-1.025-2.475Q13.5 8 12.05 8q-1.45 0-2.475 1.025Q8.55 10.05 8.55 11.5q0 1.45 1.025 2.475Q10.6 15 12.05 15Z"/></svg>
+        <button class="tool-button" onclick="showSettings()" aria-label="Settings">
+          <svg class="icon" viewBox="0 0 24 24"><path d="m9.25 22-.4-3.2q-.325-.125-.612-.3-.288-.175-.563-.375L4.7 19.375l-2.75-4.75 2.575-1.95Q4.5 12.5 4.5 12.337v-.674q0-.163.025-.338L1.95 9.375l2.75-4.75 2.975 1.25q.275-.2.575-.375.3-.175.6-.3l.4-3.2h5.5l.4 3.2q.325.125.613.3.287.175.562.375l2.975-1.25 2.75 4.75-2.575 1.95q.025.175.025.338v.674q0 .163-.05.338l2.575 1.95-2.75 4.75-2.95-1.25q-.275.2-.562.375-.288.175-.613.3l-.4 3.2Zm2.8-6.5q1.45 0 2.475-1.025Q15.55 12.95 15.55 11.5q0-1.45-1.025-2.475Q13.5 8 12.05 8q-1.45 0-2.475 1.025Q8.55 10.05 8.55 11.5q0 1.45 1.025 2.475Q10.6 15 12.05 15Z"/></svg>
           <span>Settings</span>
         </button>
       </div>
     </nav>
 
     <div class="content-area">
-      <div class="notebook-lines"></div>
-      <textarea id="textEditor" placeholder="Start writing..."></textarea>
-      <canvas id="drawCanvas"></canvas>
+      <!-- Text Note Container with Tabs and Text Formatting Toolbar -->
+      <div id="textNoteContainer" class="note-editor-container">
+        <div id="notesTabs" class="tabs-container"></div>
+        <div id="textEditorToolbar" class="toolbar">
+          <button onclick="applyFormatting('h1')" aria-label="Heading 1">H1</button>
+          <button onclick="applyFormatting('h2')" aria-label="Heading 2">H2</button>
+          <button onclick="applyFormatting('h3')" aria-label="Heading 3">H3</button>
+          <button onclick="applyFormatting('ul')" aria-label="Bullet List">Bullet</button>
+          <button onclick="applyFormatting('quote')" aria-label="Quote">Quote</button>
+          <button onclick="applyFormatting('bold')" aria-label="Bold">Bold</button>
+          <button onclick="applyFormatting('italic')" aria-label="Italic">Italic</button>
+        </div>
+        <textarea id="textEditor" placeholder="Start writing..." aria-label="Text Editor"></textarea>
+      </div>
+      <!-- Drawing Canvas -->
+      <canvas id="drawCanvas" aria-label="Drawing Canvas"></canvas>
     </div>
 
     <div class="export-menu">
@@ -270,8 +476,10 @@ body {
       <div class="setting-group">
         <label>Editor Font:</label>
         <select id="fontSelect" onchange="updateFont(this.value)">
-          <option value="Inter">Sans Serif</option>
-          <option value="Victor Mono">Monospace</option>
+          <option value="Inter">Inter (Sans Serif)</option>
+          <option value="Victor Mono">Victor Mono (Monospace)</option>
+          <option value="Roboto">Roboto</option>
+          <option value="Lato">Lato</option>
         </select>
         <div class="font-preview" id="fontPreview">
           The quick brown fox jumps over the lazy dog
@@ -309,167 +517,410 @@ body {
       <button onclick="hideSettings()">Close Preferences</button>
     </div>
 
-    <script src="static/draw-handler.js"></script>
-    <script>
-      let drawingManager, currentMode = 'text';
-      const settings = { theme: 'light', font: 'Inter', lineHeight: 1.6 };
+    <div class="attribution">
+      Crafted by <span>Mohammed Sayyad</span> (SayyadN)
+    </div>
+  </div>
+  <!-- Coordinate display for drawing canvas -->
+  <div id="coordDisplay"></div>
+  
+  <button id="backToTopBtn" title="Back to Top" onclick="scrollToTop()" aria-label="Back to Top">
+    <svg class="icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
+      <path d="M12 4l-8 8h6v8h4v-8h6z" fill="currentColor"/>
+    </svg>
+  </button>
+  
+  <!-- Local Scripts -->
 
-      function toggleTheme(theme) {
-        document.body.setAttribute('data-theme', theme);
-        settings.theme = theme;
-        localStorage.setItem('smartpad-settings', JSON.stringify(settings));
-        document.getElementById('themeSelect').value = theme;
-      }
+  <script>
+let drawingManager, currentMode = 'text';
+let scale = 1, panX = 0, panY = 0;
+let isPanning = false;
+let lastX = 0, lastY = 0;
+let touchStartPos = { x: 0, y: 0 };
+let notes = [{ id: 1, title: 'Note 1', content: '' }];
+let currentNoteId = 1;
 
-      function initTheme() {
-        const saved = localStorage.getItem('smartpad-settings');
-        if(saved) {
-          const savedSettings = JSON.parse(saved);
-          toggleTheme(savedSettings.theme || 'light');
-        }
-      }
+function setCanvasTransform() {
+  const canvas = document.getElementById('drawCanvas');
+  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+}
 
-      function setMode(mode) {
-        currentMode = mode;
-        document.querySelectorAll('.tool-button').forEach(btn => 
-          btn.classList.toggle('active', btn.id === mode+'Btn'));
-        document.getElementById('textEditor').style.display = 
-          mode === 'text' ? 'block' : 'none';
-        document.getElementById('drawCanvas').style.display = 
-          mode === 'draw' ? 'block' : 'none';
-        drawingManager?.resizeCanvas();
-      }
+function handleZoom(e) {
+  e.preventDefault();
+  const delta = e.deltaY * -0.001;
+  scale = Math.min(Math.max(1, scale + delta), 5);
+  setCanvasTransform();
+}
 
-      function updateLineCount(value) {
-        document.documentElement.style.setProperty('--line-spacing', value + 'px');
-        document.getElementById('lineCountValue').textContent = value + 'px';
-      }
+function toggleTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('smartpad-settings', JSON.stringify({ theme }));
+  document.getElementById('themeSelect').value = theme;
+}
 
-      function updateLineColor(color) {
-        document.documentElement.style.setProperty('--line-color', color + '20');
-      }
+function initTheme() {
+  const saved = localStorage.getItem('smartpad-settings');
+  if (saved) {
+    const savedSettings = JSON.parse(saved);
+    toggleTheme(savedSettings.theme || 'light');
+  }
+}
 
-      function updateFont(font) {
-        document.getElementById('textEditor').style.fontFamily = font;
-        document.getElementById('fontPreview').style.fontFamily = font;
-      }
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tool-button').forEach(btn =>
+    btn.classList.toggle('active', btn.id === mode + 'Btn'));
+  document.getElementById('textNoteContainer').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('drawCanvas').style.display = mode === 'draw' ? 'block' : 'none';
+  drawingManager?.resizeCanvas();
+}
 
-      function updateLineHeight(value) {
-        document.getElementById('textEditor').style.lineHeight = value;
-        document.getElementById('lineHeightValue').textContent = value;
-      }
+function updateLineCount(value) {
+  document.documentElement.style.setProperty('--line-spacing', value + 'px');
+  document.getElementById('lineCountValue').textContent = value + 'px';
+}
 
-      function updateMargins(value) {
-        document.getElementById('textEditor').style.padding = value + 'px';
-        document.getElementById('marginValue').textContent = value + 'px';
-      }
+function updateLineColor(color) {
+  document.documentElement.style.setProperty('--line-color', color + '20');
+}
 
-      function updateTextColor(color) {
-        document.getElementById('textEditor').style.color = color;
-      }
+function updateFont(font) {
+  document.getElementById('textEditor').style.fontFamily = font;
+  document.getElementById('fontPreview').style.fontFamily = font;
+}
 
-      function updateDrawingColor(color) {
-        drawingManager.updateBrushSettings(color, parseInt(document.getElementById('brushSize').value));
-        document.getElementById('drawColor').value = color;
-      }
+function updateLineHeight(value) {
+  document.getElementById('textEditor').style.lineHeight = value;
+  document.getElementById('lineHeightValue').textContent = value;
+}
 
-      function updateBrushSize(value) {
-        drawingManager.updateBrushSettings(document.getElementById('drawColor').value, parseInt(value));
-        document.getElementById('brushSizeValue').textContent = value;
-      }
+function updateMargins(value) {
+  document.getElementById('textEditor').style.padding = value + 'px';
+  document.getElementById('marginValue').textContent = value + 'px';
+}
 
-      function toggleEraser() {
-        if(drawingManager) drawingManager.toggleEraser();
-      }
+function updateTextColor(color) {
+  document.getElementById('textEditor').style.color = color;
+}
 
-      function showExportMenu() {
-        document.querySelector('.export-menu').style.display = 'flex';
-      }
+function updateDrawingColor(color) {
+  drawingManager.updateBrushSettings(color, parseInt(document.getElementById('brushSize').value));
+  document.getElementById('drawColor').value = color;
+}
 
-      function hideExportMenu() {
-        document.querySelector('.export-menu').style.display = 'none';
-      }
+function updateBrushSize(value) {
+  drawingManager.updateBrushSettings(document.getElementById('drawColor').value, parseInt(value));
+  document.getElementById('brushSizeValue').textContent = value;
+}
 
-      function exportContent(format) {
-        hideExportMenu();
-        const content = document.getElementById('textEditor').value;
-        switch (format) {
-          case 'txt':
-            const blob = new Blob([content], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'note.txt';
-            link.click();
-            break;
-          case 'pdf': {
-            const pdf = new jspdf.jsPDF();
-            pdf.text(content, 10, 10);
-            pdf.save('note.pdf');
-            break;
-          }
-          case 'png': {
-            if (currentMode === 'draw') {
-              const link = document.createElement('a');
-              link.download = 'drawing.png';
-              link.href = document.getElementById('drawCanvas').toDataURL();
-              link.click();
-            }
-            break;
-          }
-          case 'svg': {
-            const canvas = document.getElementById('drawCanvas');
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">` +
-              (drawingManager?.getStrokes()?.map(stroke =>
-                `<path d="M${stroke.points.map(p => `${p.x} ${p.y}`).join(' L')}" stroke="black" fill="none" stroke-width="2"/>`
-              ).join('') || '') +
-              '</svg>';
-            const blob = new Blob([svg], { type: 'image/svg+xml' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'drawing.svg';
-            link.click();
-            break;
-          }
-        }
-      }
+function toggleEraser() {
+  if (drawingManager) drawingManager.toggleEraser();
+}
 
-      function showSettings() {
-        document.querySelector('.settings-menu').style.display = 'flex';
-      }
+function clearDrawing() {
+  if (drawingManager) drawingManager.clearAll();
+}
 
-      function hideSettings() {
-        document.querySelector('.settings-menu').style.display = 'none';
-      }
+function showExportMenu() {
+  document.querySelector('.export-menu').style.display = 'flex';
+}
 
-      window.addEventListener('DOMContentLoaded', () => {
-        initTheme(); 
-        drawingManager = new DrawingManager(document.getElementById('drawCanvas'));
-        document.getElementById('drawCanvas').style.touchAction = 'none';
+function hideExportMenu() {
+  document.querySelector('.export-menu').style.display = 'none';
+}
 
-        const savedDrawSettings = localStorage.getItem('drawSettings');
-        if(savedDrawSettings) {
-          const {color, width} = JSON.parse(savedDrawSettings);
-          document.getElementById('drawColor').value = color;
-          document.getElementById('brushSize').value = width;
-          document.getElementById('brushSizeValue').textContent = width;
-        }
-        
-        if(drawingManager.settings.isEraser) {
-          document.getElementById('eraserBtn').classList.add('active');
+function exportContent(format) {
+  let activeNote = notes.find(n => n.id === currentNoteId);
+  let defaultName = activeNote ? activeNote.title : `ZenPad_${new Date().toISOString().slice(0, 10)}`;
+  const fileName = prompt('Enter file name:', defaultName);
+  if (!fileName) return;
+  hideExportMenu();
+  const canvas = document.getElementById('drawCanvas');
+  const dpr = window.devicePixelRatio || 1;
+
+  switch (format) {
+    case 'txt': {
+      const textContent = activeNote ? activeNote.content : document.getElementById('textEditor').value;
+      const lines = textContent.split('\n');
+      const numberedContent = lines.map((line, index) => {
+        const lineNumber = (index + 1).toString().padStart(3, ' ');
+        return `${lineNumber} │ ${line}`;
+      }).join('\n');
+      const blob = new Blob([numberedContent], { type: 'text/plain' });
+      downloadBlob(blob, `${fileName}.txt`);
+      break;
+    }
+    case 'pdf': {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      const text = activeNote ? activeNote.content : document.getElementById('textEditor').value;
+      const lines = text.split('\n');
+      let yPos = 15;
+      const defaultFontSize = 12;
+      lines.forEach(line => {
+        if (line.startsWith('# ')) {
+          pdf.setFontSize(20);
+          pdf.text(line.substring(2).trim(), 15, yPos, { maxWidth: 180 });
+          yPos += 20 * 1.5;
+        } else {
+          pdf.setFontSize(defaultFontSize);
+          pdf.text(line, 15, yPos, { maxWidth: 180 });
+          yPos += defaultFontSize * 1.5;
         }
       });
+      pdf.setDrawColor(200);
+      for (let y = 10; y < yPos + 10; y += 10) {
+        pdf.line(10, y, 200, y);
+      }
+      if (currentMode === 'draw') {
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      }
+      pdf.save(`${fileName}.pdf`);
+      break;
+    }
+    case 'png': {
+      const fullCanvas = document.createElement('canvas');
+      const ctx = fullCanvas.getContext('2d');
+      fullCanvas.width = canvas.width;
+      fullCanvas.height = canvas.height;
+      ctx.drawImage(canvas, 0, 0);
+      fullCanvas.toBlob(blob => {
+        downloadBlob(blob, `${fileName}.png`);
+      }, 'image/png');
+      break;
+    }
+    case 'svg': {
+      const svgContent = drawingManager.getStrokes().map(stroke =>
+        `<path d="M${stroke.points.map(p => `${p.x / dpr} ${p.y / dpr}`).join(' L')}" 
+          stroke="${stroke.color}" 
+          stroke-width="${stroke.width / dpr}" 
+          transform="translate(${panX} ${panY}) scale(${1 / scale})"
+          fill="none"
+          stroke-linecap="round"/>`
+      ).join('');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 ${canvas.width / dpr} ${canvas.height / dpr}"
+        width="${canvas.width / dpr}px" 
+        height="${canvas.height / dpr}px">${svgContent}</svg>`;
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      downloadBlob(blob, `${fileName}.svg`);
+      break;
+    }
+  }
+}
 
-      window.addEventListener('resize', () => drawingManager?.resizeCanvas());
+function downloadBlob(blob, filename) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
-      document.getElementById('textEditor').addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
-      });
+function scrollToTop() {
+  const contentArea = document.querySelector('.content-area');
+  contentArea.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth'
+  });
+}
 
-      document.getElementById('drawCanvas').addEventListener('contextmenu', e => e.preventDefault());
-    </script>
-    <script>
-      class DrawingManager {
+function applyFormatting(format) {
+  const textEditor = document.getElementById('textEditor');
+  const selectedText = textEditor.value.substring(textEditor.selectionStart, textEditor.selectionEnd);
+  let formattedText = '';
+
+  switch (format) {
+    case 'h1': formattedText = `# ${selectedText}`; break;
+    case 'h2': formattedText = `## ${selectedText}`; break;
+    case 'h3': formattedText = `### ${selectedText}`; break;
+    case 'ul': formattedText = `- ${selectedText}`; break;
+    case 'quote': formattedText = `> ${selectedText}`; break;
+    case 'bold': formattedText = `**${selectedText}**`; break;
+    case 'italic': formattedText = `*${selectedText}*`; break;
+    default: formattedText = selectedText;
+  }
+
+  const newText = textEditor.value.substring(0, textEditor.selectionStart) +
+    formattedText +
+    textEditor.value.substring(textEditor.selectionEnd);
+  textEditor.value = newText;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  const canvas = document.getElementById('drawCanvas');
+  canvas.width = window.innerWidth * 2;
+  canvas.height = window.innerHeight * 2;
+  drawingManager = new DrawingManager(canvas);
+  drawingManager.updateEraserButton();
+  canvas.style.touchAction = 'none';
+  const savedDrawSettings = localStorage.getItem('drawSettings');
+  if (savedDrawSettings) {
+    const { color, width } = JSON.parse(savedDrawSettings);
+    document.getElementById('drawColor').value = color;
+    document.getElementById('brushSize').value = width;
+    document.getElementById('brushSizeValue').textContent = width;
+  }
+  if (drawingManager.settings.isEraser) {
+    document.getElementById('eraserBtn').classList.add('active');
+  }
+
+  canvas.addEventListener('wheel', handleZoom);
+
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const scrollContainer = canvas.parentElement;
+    const x = Math.round((e.clientX - rect.left + scrollContainer.scrollLeft) / scale);
+    const y = Math.round((e.clientY - rect.top + scrollContainer.scrollTop) / scale);
+    const coordDisplay = document.getElementById('coordDisplay');
+    if (coordDisplay) {
+      coordDisplay.innerText = `X: ${x}, Y: ${y}`;
+    }
+  });
+});
+
+window.addEventListener('resize', () => drawingManager?.resizeCanvas());
+
+window.addEventListener('mouseup', () => isPanning = false);
+
+document.getElementById('drawCanvas').addEventListener('mousedown', (e) => {
+  if (e.button === 1) {
+    isPanning = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (isPanning) {
+    const deltaX = e.clientX - lastX;
+    const deltaY = e.clientY - lastY;
+    const contentArea = document.querySelector('.content-area');
+    contentArea.scrollBy(-deltaX * 2, -deltaY * 2);
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }
+});
+
+document.getElementById('drawCanvas').addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+});
+
+document.getElementById('drawCanvas').addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    const deltaX = e.touches[0].clientX - touchStartPos.x;
+    const deltaY = e.touches[0].clientY - touchStartPos.y;
+    const contentArea = document.querySelector('.content-area');
+    contentArea.scrollLeft -= deltaX * 2;
+    contentArea.scrollTop -= deltaY * 2;
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+});
+
+const textEditor = document.getElementById('textEditor');
+textEditor.addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = this.scrollHeight + 'px';
+});
+
+textEditor.addEventListener('scroll', function () {
+  const threshold = 200;
+  const scrollBottom = this.scrollHeight - (this.scrollTop + this.clientHeight);
+  if (scrollBottom < threshold) {
+    const currentPadding = parseInt(getComputedStyle(this).paddingBottom) || 0;
+    this.style.paddingBottom = `${currentPadding + 1000}px`;
+  }
+});
+
+function showSettings() {
+  document.querySelector('.settings-menu').style.display = 'flex';
+}
+
+function hideSettings() {
+  document.querySelector('.settings-menu').style.display = 'none';
+}
+
+function updateTabsUI() {
+  const tabsContainer = document.getElementById('notesTabs');
+  tabsContainer.innerHTML = '';
+  notes.forEach(note => {
+    const tab = document.createElement('div');
+    tab.classList.add('tab');
+    if (note.id === currentNoteId) tab.classList.add('active');
+    tab.textContent = note.title;
+    tab.dataset.id = note.id;
+    if (notes.length > 1) {
+      const closeBtn = document.createElement('span');
+      closeBtn.textContent = '✕';
+      closeBtn.classList.add('close-tab');
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        removeNote(note.id);
+      };
+      tab.appendChild(closeBtn);
+    }
+    tab.onclick = () => { switchNote(note.id); };
+    tabsContainer.appendChild(tab);
+  });
+  const addTab = document.createElement('div');
+  addTab.classList.add('tab');
+  addTab.textContent = '+';
+  addTab.onclick = addNote;
+  tabsContainer.appendChild(addTab);
+}
+
+function switchNote(id) {
+  saveCurrentNote();
+  currentNoteId = id;
+  const note = notes.find(n => n.id === currentNoteId);
+  document.getElementById('textEditor').value = note ? note.content : '';
+  updateTabsUI();
+}
+
+function addNote() {
+  saveCurrentNote();
+  const newId = Date.now();
+  const newNote = { id: newId, title: `Note ${notes.length + 1}`, content: '' };
+  notes.push(newNote);
+  currentNoteId = newId;
+  document.getElementById('textEditor').value = '';
+  updateTabsUI();
+}
+
+function removeNote(id) {
+  if (notes.length === 1) return;
+  notes = notes.filter(n => n.id !== id);
+  if (currentNoteId === id) {
+    currentNoteId = notes[0].id;
+    document.getElementById('textEditor').value = notes[0].content;
+  }
+  updateTabsUI();
+}
+
+function saveCurrentNote() {
+  const textEditor = document.getElementById('textEditor');
+  const note = notes.find(n => n.id === currentNoteId);
+  if (note) {
+    note.content = textEditor.value;
+  }
+}
+
+document.getElementById('textEditor').addEventListener('input', saveCurrentNote);
+updateTabsUI();
+  </script>
+  <script>
+    class DrawingManager {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -478,7 +929,8 @@ body {
     this.settings = {
       color: '#000000',
       width: 3,
-      isEraser: false
+      isEraser: false,
+      baseColor: getComputedStyle(canvas).backgroundColor || '#ffffff' // Fallback to white
     };
     this.init();
   }
@@ -487,9 +939,9 @@ body {
     this.resizeCanvas();
     this.setupInputHandling();
     window.addEventListener('resize', () => this.resizeCanvas());
-    
+
     const savedSettings = localStorage.getItem('drawSettings');
-    if(savedSettings) {
+    if (savedSettings) {
       Object.assign(this.settings, JSON.parse(savedSettings));
     }
     this.updateEraserButton();
@@ -497,35 +949,65 @@ body {
 
   updateEraserButton() {
     const eraserBtn = document.getElementById('eraserBtn');
-    if(eraserBtn) {
+    if (eraserBtn) {
       eraserBtn.classList.toggle('active', this.settings.isEraser);
-      eraserBtn.querySelector('svg').style.transform = this.settings.isEraser ? 'rotate(45deg)' : 'none';
+      const svgIcon = eraserBtn.querySelector('svg');
+      if (svgIcon) {
+        svgIcon.style.transform = this.settings.isEraser ? 'rotate(45deg)' : 'none';
+      }
     }
   }
 
   toggleEraser() {
     this.settings.isEraser = !this.settings.isEraser;
+    this.settings.color = this.settings.isEraser
+      ? this.settings.baseColor
+      : document.getElementById('drawColor').value;
     this.updateEraserButton();
     localStorage.setItem('drawSettings', JSON.stringify(this.settings));
-    this.redraw();
   }
 
   setupInputHandling() {
-    const getCanvasColor = () => getComputedStyle(this.canvas).backgroundColor;
+    const getScaledPoint = (clientX, clientY) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const scrollContainer = this.canvas.parentElement;
+      return {
+        x: (clientX - rect.left + scrollContainer.scrollLeft) / (rect.width / this.canvas.width),
+        y: (clientY - rect.top + scrollContainer.scrollTop) / (rect.height / this.canvas.height)
+      };
+    };
 
-    const handleStart = (x, y) => {
+    const handleStart = (clientX, clientY) => {
+      const { x, y } = getScaledPoint(clientX, clientY);
       this.currentPath = {
-        points: [{x, y}],
-        color: this.settings.isEraser ? getCanvasColor() : this.settings.color,
+        points: [{ x, y }],
+        color: this.settings.isEraser ? this.settings.baseColor : this.settings.color,
         width: this.settings.width,
         compositeOp: this.settings.isEraser ? 'destination-out' : 'source-over'
       };
       this.undoStack.push(this.currentPath);
     };
 
-    const handleMove = (x, y) => {
+    const handleMove = (clientX, clientY) => {
       if (!this.currentPath) return;
-      this.currentPath.points.push({x, y});
+
+      const { x, y } = getScaledPoint(clientX, clientY);
+      const padding = 100;
+      const expand = { left: 0, right: 0, top: 0, bottom: 0 };
+
+      if (x < padding) expand.left = padding - x;
+      else if (x > this.canvas.width - padding)
+        expand.right = x - (this.canvas.width - padding);
+
+      if (y < padding) expand.top = padding - y;
+      else if (y > this.canvas.height - padding)
+        expand.bottom = y - (this.canvas.height - padding);
+
+      if (expand.left + expand.right + expand.top + expand.bottom > 0) {
+        this.expandCanvas(expand.left, expand.right, expand.top, expand.bottom);
+      }
+
+      this.currentPath.points.push({ x, y });
       this.redraw();
     };
 
@@ -534,21 +1016,19 @@ body {
     };
 
     const handleEvent = (e) => {
-      if (e.pointerType === 'touch' && e.pointerType !== 'mouse') {
+      if (e.pointerType === 'touch') {
         e.preventDefault();
       }
     };
 
     this.canvas.addEventListener('pointerdown', e => {
       handleEvent(e);
-      const rect = this.canvas.getBoundingClientRect();
-      handleStart(e.clientX - rect.left, e.clientY - rect.top);
+      handleStart(e.clientX, e.clientY);
     });
 
     this.canvas.addEventListener('pointermove', e => {
       handleEvent(e);
-      const rect = this.canvas.getBoundingClientRect();
-      handleMove(e.clientX - rect.left, e.clientY - rect.top);
+      handleMove(e.clientX, e.clientY);
     });
 
     ['pointerup', 'pointercancel'].forEach(event => {
@@ -564,12 +1044,63 @@ body {
     });
   }
 
+  expandCanvas(left, right, top, bottom) {
+    const dpr = window.devicePixelRatio;
+    const currentCSSWidth = this.canvas.clientWidth;
+    const currentCSSHeight = this.canvas.clientHeight;
+    const newCSSWidth = currentCSSWidth + left + right;
+    const newCSSHeight = currentCSSHeight + top + bottom;
+
+    const scrollContainer = this.canvas.parentElement;
+    if (scrollContainer) {
+      scrollContainer.style.width = newCSSWidth + 'px';
+      scrollContainer.style.height = newCSSHeight + 'px';
+    }
+
+    if (left > 0)
+      scrollContainer.scrollLeft = 0;
+    else if (right > 0)
+      scrollContainer.scrollLeft = newCSSWidth - scrollContainer.clientWidth;
+    if (top > 0)
+      scrollContainer.scrollTop = 0;
+    else if (bottom > 0)
+      scrollContainer.scrollTop = newCSSHeight - scrollContainer.clientHeight;
+
+    const newWidth = newCSSWidth * dpr;
+    const newHeight = newCSSHeight * dpr;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = newWidth;
+    tempCanvas.height = newHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    const shiftX = left * dpr;
+    const shiftY = top * dpr;
+    tempCtx.drawImage(this.canvas, shiftX, shiftY);
+
+    this.canvas.width = newWidth;
+    this.canvas.height = newHeight;
+    this.canvas.style.width = newCSSWidth + 'px';
+    this.canvas.style.height = newCSSHeight + 'px';
+    this.ctx.drawImage(tempCanvas, 0, 0);
+
+    if (left > 0 || top > 0) {
+      this.undoStack.forEach(path => {
+        path.points.forEach(p => {
+          p.x += left * dpr;
+          p.y += top * dpr;
+        });
+      });
+    }
+    this.redraw();
+  }
+
   redraw() {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = getComputedStyle(this.canvas).backgroundColor;
+    this.ctx.fillStyle = this.settings.baseColor;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    
+
     this.undoStack.forEach(path => {
       this.ctx.beginPath();
       this.ctx.globalCompositeOperation = path.compositeOp;
@@ -577,9 +1108,9 @@ body {
       this.ctx.lineWidth = path.width;
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
-      
+
       path.points.forEach((p, i) => {
-        if(i === 0) this.ctx.moveTo(p.x, p.y);
+        if (i === 0) this.ctx.moveTo(p.x, p.y);
         else this.ctx.lineTo(p.x, p.y);
       });
       this.ctx.stroke();
@@ -595,19 +1126,114 @@ body {
 
   resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
+    const scrollContainer = this.canvas.parentElement;
+    const rect = scrollContainer.getBoundingClientRect();
+    this.canvas.style.width = rect.width + 'px';
+    this.canvas.style.height = rect.height + 'px';
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.redraw();
   }
 
   getStrokes() {
     return this.undoStack;
   }
+
+  clearAll() {
+    this.undoStack = [];
+    this.redraw();
+  }
 }
 
 window.DrawingManager = DrawingManager;
-    </script>
-  </body>
+  </script>
+  <script>
+    (function () {
+  'use strict';
+
+  // Applies formatting commands to the text editor content.
+  window.applyFormatting = function (format) {
+    const textarea = document.getElementById('textEditor');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const originalText = textarea.value;
+    let modifiedText = originalText;
+
+    switch (format) {
+      case 'h1':
+        modifiedText = insertAtLineStart(originalText, start, end, '# ');
+        break;
+      case 'h2':
+        modifiedText = insertAtLineStart(originalText, start, end, '## ');
+        break;
+      case 'h3':
+        modifiedText = insertAtLineStart(originalText, start, end, '### ');
+        break;
+      case 'bold':
+        modifiedText = wrapSelection(originalText, start, end, '**');
+        break;
+      case 'italic':
+        modifiedText = wrapSelection(originalText, start, end, '*');
+        break;
+      case 'ul':
+        modifiedText = insertAtLineStart(originalText, start, end, '- ');
+        break;
+      case 'quote':
+        modifiedText = insertAtLineStart(originalText, start, end, '> ');
+        break;
+      default:
+        break;
+    }
+
+    textarea.value = modifiedText;
+    textarea.focus();
+
+    // Restore the cursor position after modification
+    const newCursorPos = start + (modifiedText.length - originalText.length);
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+  };
+
+  // Wraps the selected text with the specified wrapper (e.g., ** for bold)
+  function wrapSelection(text, start, end, wrapper) {
+    const selected = text.substring(start, end);
+    if (selected) {
+      // If text is selected, wrap it
+      return text.substring(0, start) + wrapper + selected + wrapper + text.substring(end);
+    } else {
+      // If no text is selected, insert the wrapper at the cursor position
+      return text.substring(0, start) + wrapper + wrapper + text.substring(start);
+    }
+  }
+
+  // Inserts a prefix at the start of each line in the selected area
+  function insertAtLineStart(text, start, end, prefix) {
+    let lineStart = text.lastIndexOf('\n', start - 1);
+    lineStart = lineStart === -1 ? 0 : lineStart + 1;
+
+    let lineEnd = text.indexOf('\n', end);
+    lineEnd = lineEnd === -1 ? text.length : lineEnd;
+
+    const selectedBlock = text.substring(lineStart, lineEnd);
+    const lines = selectedBlock.split('\n');
+
+    const formattedLines = lines.map(line => {
+      // Add the prefix only if the line doesn't already start with it
+      return line.startsWith(prefix) ? line : prefix + line;
+    });
+
+    return (
+      text.substring(0, lineStart) +
+      formattedLines.join('\n') +
+      text.substring(lineEnd)
+    );
+  }
+})();
+  </script>
+  <script>
+    
+  </script>
+</body>
 </html>
